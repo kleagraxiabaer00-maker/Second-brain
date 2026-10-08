@@ -1,0 +1,11 @@
+{
+  "name": "second-brain",
+  "owner": { "name": "kleagraxiabaer00-maker" },
+  "plugins": [
+    {
+      "name": "SecondBrainSystem",
+      "source": "./SecondBrainSystem",
+      "description": "Frugal Haiku/Sonnet router with fallback, Planner/Builder sync, and a live Second Brain dashboard"
+    }
+  ]
+}
