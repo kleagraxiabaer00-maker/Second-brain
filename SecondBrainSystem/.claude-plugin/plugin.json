@@ -1,0 +1,13 @@
+{
+  "name": "SecondBrainSystem",
+  "version": "0.1.0",
+  "description": "Frugal Haiku/Sonnet router with fallback, file-based Planner/Builder sync, and a live Second Brain dashboard pane, all rooted at ~/.secondbrain/",
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "root": { "type": "string", "title": "Second Brain folder", "description": "Where handover.md, the agent cards and your knowledge files live", "default": "~/.secondbrain" },
+    "router": { "type": "boolean", "title": "Frugal router", "description": "Send lightweight prompts to the light model", "default": true },
+    "lightModel": { "type": "string", "title": "Light model", "description": "Model for lightweight tasks", "default": "claude-haiku-5-5" },
+    "heavyModel": { "type": "string", "title": "Heavy model", "description": "Model for deep coding/logic and the fallback when the light model fails; empty keeps the session's model", "default": "claude-sonnet-5-5" },
+    "maxBuilders": { "type": "number", "title": "Builder concurrency", "description": "Background builder subagents this session runs at once", "default": 1 }
+  }
+}
