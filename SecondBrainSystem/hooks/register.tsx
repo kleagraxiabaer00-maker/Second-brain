@@ -93,6 +93,7 @@ let turnSwap = ''
 let isTicking = false
 let lastCardWrite = 0
 let lastHandoverMtime = -1
+let isWindows = false
 
 async function record(
   $: EngineInterface,
@@ -126,21 +127,37 @@ async function record(
 }
 
 /** Every write takes an atomic `mkdir` lock, so two Builders never claim one task. */
+/** Runs a file-system command the way this OS spells it (cmd builtins on Windows). */
+async function fileCommand(
+  $: EngineInterface,
+  verb: 'mkdir' | 'rmdir' | 'move',
+  from: string,
+  to?: string,
+) {
+  if (!isWindows) {
+    return $.process.run(verb === 'move' ? ['mv', '-f', from, to ?? ''] : [verb, from])
+  }
+  const win = (p: string) => p.replace(/\//g, '\\')
+  const args = verb === 'move' ? ['/c', 'move', '/Y', win(from), win(to ?? '')] : ['/c', verb, win(from)]
+
+  return $.process.run(['cmd', ...args])
+}
+
 async function withLock<T>($: EngineInterface, root: string, work: () => Promise<T>): Promise<T> {
   const lock = `${root}/.handover.lock`
   for (let attempt = 0; attempt < 50; attempt++) {
-    const taken = await $.process.run(['mkdir', lock])
+    const taken = await fileCommand($, 'mkdir', lock)
     if (taken.exitCode === 0) {
       try {
         return await work()
       } finally {
-        await $.process.run(['rmdir', lock])
+        await fileCommand($, 'rmdir', lock)
       }
     }
     // A lock older than 30s belongs to a session that died mid-write.
     const held = await $.fs.stat(lock).catch(() => undefined)
     if (held && (await $.clock.now()) - held.mtimeMs > 30_000) {
-      await $.process.run(['rmdir', lock])
+      await fileCommand($, 'rmdir', lock)
       continue
     }
     await $.clock.sleep(100 + Math.floor(Math.random() * 150))
@@ -169,7 +186,7 @@ async function mutate(
     }
     const temp = `${c.root}/.handover.${c.who}.tmp`
     await $.fs.write(temp, serialize(doc))
-    const moved = await $.process.run(['mv', '-f', temp, `${c.root}/handover.md`])
+    const moved = await fileCommand($, 'move', temp, `${c.root}/handover.md`)
     if (moved.exitCode !== 0) {
       throw new Error(`could not replace handover.md: ${moved.stderr.trim()}`)
     }
@@ -534,7 +551,8 @@ export const register: Register = (on, options) => {
 
   on('session.start', async ($, e, next) => {
     const result = await next(e)
-    const home = (await $.env.get('HOME')) ?? ''
+    isWindows = (await $.env.get('OS')) === 'Windows_NT'
+    const home = (await $.env.get('HOME')) ?? (await $.env.get('USERPROFILE')) ?? ''
     const root = config.root.replace(/^~(?=\/|$)/, home).replace(/\/$/, '')
     for (const [name, text] of Object.entries(SEEDS)) {
       if (!(await $.fs.exists(`${root}/${name}`))) await $.fs.write(`${root}/${name}`, text)
