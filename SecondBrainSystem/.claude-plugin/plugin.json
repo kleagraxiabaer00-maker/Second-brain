@@ -1,6 +1,6 @@
 {
   "name": "SecondBrainSystem",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Frugal Haiku/Sonnet router with fallback, file-based Planner/Builder sync, and a live Second Brain dashboard pane, all rooted at ~/.secondbrain/",
   "types": "./types/index.d.ts",
   "userConfig": {
